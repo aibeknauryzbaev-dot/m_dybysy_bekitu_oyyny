@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="kk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>М дыбысын тап!</title>
+  <style>
+    :root { --blue:#082b68; --pink:#f50068; --yellow:#ffd34e; --sky:#eaf8ff; --green:#19a463; --red:#df3856; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; font-family:Arial, sans-serif; color:var(--blue); background:linear-gradient(135deg,#dff5ff,#fffdf2 55%,#ffeaf4); overflow-x:hidden; }
+    .cloud { position:fixed; width:230px; height:90px; background:#fff; border-radius:70px; opacity:.75; filter:blur(.2px); z-index:-1; }
+    .cloud:before,.cloud:after { content:""; position:absolute; background:#fff; border-radius:50%; }
+    .cloud:before { width:95px; height:95px; left:35px; bottom:15px; }
+    .cloud:after { width:120px; height:120px; right:25px; bottom:5px; }
+    .c1 { top:4%; left:-40px; } .c2 { bottom:3%; right:-50px; transform:scale(.8); }
+    main { width:min(1100px,94vw); margin:auto; padding:24px 0 30px; }
+    header { text-align:center; }
+    h1 { margin:8px 0 4px; color:var(--pink); font-size:clamp(34px,5vw,64px); line-height:1.05; }
+    .subtitle { margin:0 0 18px; font-size:clamp(20px,2.5vw,30px); font-weight:700; }
+    .topbar { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; background:#ffffffd9; border:3px solid var(--yellow); border-radius:22px; padding:12px 18px; box-shadow:0 7px 0 #f2c336; }
+    .pill { font-size:22px; font-weight:700; } .score { color:var(--pink); }
+    .progress { height:14px; flex:1 1 260px; background:#d9e7f5; border-radius:99px; overflow:hidden; } .bar { width:0%; height:100%; background:linear-gradient(90deg,var(--pink),#ff9a3d); transition:width .3s; }
+    .board { margin-top:20px; background:#ffffffdb; border-radius:28px; padding:22px; box-shadow:0 10px 30px #75a7c633; }
+    .instruction { text-align:center; margin:0 0 16px; font-size:clamp(22px,3vw,34px); font-weight:700; }
+    .cards { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+    .card { min-height:220px; border:4px solid #b9dcf1; border-radius:24px; background:#fff; cursor:pointer; padding:15px; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:8px; transition:transform .15s, border-color .15s, box-shadow .15s; }
+    .card:hover { transform:translateY(-5px); border-color:var(--yellow); box-shadow:0 8px 0 #f6dc79; }
+    .card:disabled { cursor:default; }
+    .sprite { width:150px; height:118px; background-image:url('game_sprites.png'); background-size:300% 300%; background-repeat:no-repeat; border-radius:18px; }
+    .s-cat{background-position:0% 0%}.s-fish{background-position:50% 0%}.s-car{background-position:100% 0%}
+    .s-house{background-position:0% 50%}.s-apple{background-position:50% 50%}.s-banana{background-position:100% 50%}
+    .s-mosquito{background-position:0% 100%}.s-ball{background-position:50% 100%}.s-cotton{background-position:100% 100%}
+    .word { font-size:clamp(25px,3vw,38px); font-weight:800; }
+    .card.correct { border-color:var(--green); background:#e6fff2; box-shadow:0 8px 0 #83d9ae; } .card.wrong { border-color:var(--red); background:#fff0f2; animation:shake .35s; }
+    @keyframes shake { 25%{transform:translateX(-8px)} 50%{transform:translateX(8px)} 75%{transform:translateX(-5px)} }
+    .message { min-height:45px; text-align:center; margin:16px 0 0; font-size:clamp(22px,3vw,32px); font-weight:800; }
+    .message.good { color:var(--green); } .message.bad { color:var(--red); }
+    .controls { display:flex; justify-content:center; gap:12px; margin-top:14px; flex-wrap:wrap; }
+    button.control { border:0; border-radius:16px; padding:13px 22px; font-size:20px; font-weight:800; cursor:pointer; background:var(--blue); color:white; box-shadow:0 5px 0 #041a43; } button.control:hover { transform:translateY(-2px); } button.control.secondary { background:var(--pink); box-shadow:0 5px 0 #b1004d; }
+    .help { margin:18px auto 0; text-align:center; font-size:17px; opacity:.75; }
+    @media (max-width:700px){ .cards{grid-template-columns:1fr 1fr;} .card{min-height:180px;} }
+    @media (max-width:460px){ .cards{grid-template-columns:1fr;} }
+  </style>
+</head>
+<body>
+  <div class="cloud c1"></div><div class="cloud c2"></div>
+  <main>
+    <header>
+      <h1>М дыбысын тап!</h1>
+      <p class="subtitle">Сөзде «М» дыбысы бар суретті таңда</p>
+    </header>
+    <section class="topbar" aria-label="Ойын көрсеткіштері">
+      <div class="pill">Раунд: <span id="round">1</span>/5</div>
+      <div class="progress"><div class="bar" id="bar"></div></div>
+      <div class="pill score">Ұпай: <span id="score">0</span></div>
+    </section>
+    <section class="board">
+      <p class="instruction" id="instruction">М дыбысы бар сөзді тап!</p>
+      <div class="cards" id="cards"></div>
+      <div class="message" id="message" aria-live="polite"></div>
+      <div class="controls">
+        <button class="control secondary" id="next" hidden>Келесі раунд</button>
+        <button class="control" id="restart">Қайта бастау</button>
+      </div>
+      <p class="help">Интерактивті тақтада сөзді дауыстап оқып, дұрыс суретті бас.</p>
+    </section>
+  </main>
+  <script>
+    const rounds = [
+      [{s:'s-cat',w:'мысық',ok:true},{s:'s-fish',w:'балық',ok:false},{s:'s-ball',w:'доп',ok:false}],
+      [{s:'s-car',w:'машина',ok:true},{s:'s-house',w:'үй',ok:false},{s:'s-ball',w:'доп',ok:false}],
+      [{s:'s-apple',w:'алма',ok:true},{s:'s-banana',w:'банан',ok:false},{s:'s-fish',w:'балық',ok:false}],
+      [{s:'s-mosquito',w:'маса',ok:true},{s:'s-ball',w:'доп',ok:false},{s:'s-house',w:'үй',ok:false}],
+      [{s:'s-cotton',w:'мақта',ok:true},{s:'s-ball',w:'доп',ok:false},{s:'s-house',w:'үй',ok:false}]
+    ];
+    let current=0, score=0, answered=false;
+    const cards=document.getElementById('cards'), message=document.getElementById('message'), next=document.getElementById('next');
+    function render(){
+      answered=false; cards.innerHTML=''; message.textContent=''; message.className='message'; next.hidden=true;
+      document.getElementById('round').textContent=current+1; document.getElementById('score').textContent=score;
+      document.getElementById('bar').style.width=(current/rounds.length*100)+'%';
+      rounds[current].forEach(item=>{
+        const b=document.createElement('button'); b.className='card'; b.innerHTML=`<span class="sprite ${item.s}" role="img" aria-label="${item.w}"></span><span class="word">${item.w}</span>`;
+        b.addEventListener('click',()=>choose(b,item.ok)); cards.appendChild(b);
+      });
+    }
+    function choose(button, ok){
+      if(answered)return;
+      if(ok){ answered=true; button.classList.add('correct'); score++; document.getElementById('score').textContent=score; message.textContent='Жарайсың! Дұрыс жауап!'; message.className='message good'; [...cards.children].forEach(x=>x.disabled=true); next.hidden=false; }
+      else { button.classList.add('wrong'); message.textContent='Тағы бір рет ойлан. Сөзді созып оқы.'; message.className='message bad'; setTimeout(()=>button.classList.remove('wrong'),450); }
+    }
+    next.addEventListener('click',()=>{ if(current<rounds.length-1){current++;render();} else { message.textContent=`Ойын аяқталды! Сенің ұпайың: ${score}/${rounds.length}`; next.hidden=true; document.getElementById('bar').style.width='100%'; } });
+    document.getElementById('restart').addEventListener('click',()=>{current=0;score=0;render();});
+    render();
+  </script>
+</body>
+</html>
